@@ -11,19 +11,61 @@ Complete Modbus TCP simulator for Fronius Symo Gen24 Plus inverter with full Sun
 - **Command Feedback**: Proper status updates and reversion timers for all write commands
 - **Real-time Updates**: WebSocket support for live register value changes
 
+## Quick Start (Windows)
+
+### 1. Install Dependencies
+```batch
+install.bat
+```
+
+### 2. Start Simulator
+```batch
+Start.bat
+```
+
+### 3. Stop Simulator
+```batch
+Stop.bat
+```
+
+That's it! Open your browser to http://localhost:3000 and click START.
+
+---
+
 ## Installation
 
+### Windows (Recommended)
+```batch
+install.bat
+```
+
+### Manual Installation
 ```bash
-# Install all dependencies
 npm run install:all
 ```
 
 ## Usage
 
-### Development Mode
+### Windows Batch Files (Easiest)
+
+**Start:**
+```batch
+Start.bat
+```
+- Starts both backend and frontend
+- Shows all connection URLs
+- Displays network IP
+
+**Stop:**
+```batch
+Stop.bat
+```
+- Cleanly stops all Node.js processes
+
+### npm Commands
 
 ```bash
-# Run both backend and frontend in development mode
+# Run both backend and frontend
 npm run dev
 
 # Or run separately:

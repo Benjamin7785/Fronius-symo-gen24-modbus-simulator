@@ -14,26 +14,87 @@ npm run install:all
 
 ## Starting the Simulator
 
-### Option 1: Run Both Frontend and Backend (Recommended)
+### Option 1: Using Batch Files (Easiest - Windows)
+
+**Start the simulator:**
+```batch
+Start.bat
+```
+Double-click `Start.bat` or run it from command prompt. This will:
+- Start both Backend and Frontend servers
+- Display all connection URLs
+- Show your network IP in the Web UI
+- Keep the console window open
+
+**Stop the simulator:**
+```batch
+Stop.bat
+```
+Double-click `Stop.bat` to cleanly stop all Node.js processes.
+
+**Access Points:**
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:3001
+- Modbus TCP: Port 503 (Device ID: 1)
+
+### Option 2: Using npm Commands
+
+**Run Both Frontend and Backend:**
 ```bash
 npm run dev
 ```
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:3001
-- Modbus TCP: Port 502
-
-### Option 2: Backend Only
+**Backend Only:**
 ```bash
 npm run dev:backend
 ```
+
+**Stop:** Press `Ctrl+C` in the terminal
+
+## Complete Startup Procedure
+
+### For First-Time Users:
+
+1. **Install Node.js** (if not already installed)
+   - Download from https://nodejs.org (version 14 or higher)
+
+2. **Install Dependencies:**
+   - Double-click `install.bat`
+   - OR run: `npm run install:all`
+
+3. **Start the Simulator:**
+   - Double-click `Start.bat`
+   - Wait ~15 seconds for servers to start
+
+4. **Open Web UI:**
+   - Browser will show: http://localhost:3000
+   - Note your network IP displayed in the UI
+
+5. **Enable Modbus:**
+   - Click the **"START"** button in Web UI
+   - Status changes to "Running"
+   - Modbus TCP is now active on port 503
+
+6. **Set Power Output:**
+   - Use slider or enter value (0-10,000 W)
+   - Watch real-time updates
+
+7. **Configure EDMM-20:**
+   - IP Address: [Your IP from Web UI]
+   - Port: 503
+   - Device ID: 1
+
+### Stopping the Simulator:
+
+- **Option A:** Double-click `Stop.bat` (cleanly stops all processes)
+- **Option B:** Press `Ctrl+C` in the terminal window
 
 ## Using the Web UI
 
 1. **Open your browser:** http://localhost:3000
 
 2. **Start the simulator:**
-   - Click the **"Start"** button
+   - Click the **"START"** button
    - You should see status change to "Running"
 
 3. **Control PV Power:**
