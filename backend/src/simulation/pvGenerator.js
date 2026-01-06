@@ -26,7 +26,7 @@ class PVGenerator extends EventEmitter {
     
     // DC side (MPPT)
     this.dcVoltageBase = 600; // Base DC voltage
-    this.mpptChannels = 2; // Number of MPPT inputs
+    this.mpptChannels = 4; // Number of MPPT inputs (EDMM-20 shows A, B, C, D)
     
     // Energy counter
     this.totalEnergy = 0; // Wh
@@ -132,17 +132,21 @@ class PVGenerator extends EventEmitter {
     const acVoltage = this.nominalVoltage + (Math.random() - 0.5) * 2; // ±1V variation
     const frequency = this.nominalFrequency + (Math.random() - 0.5) * 0.04; // ±0.02Hz
     
-    // Scale factor is -2 for voltage and frequency (0.01 scale)
-    const SF = -2;
-    const scaleFactor = Math.pow(10, -SF);
+    // Voltage scale factor is -1 (0.1 scale) to match V_SF register
+    const voltageSF = -1;
+    const voltageScaleFactor = Math.pow(10, -voltageSF);
+    
+    // Frequency scale factor is -2 (0.01 scale)
+    const freqSF = -2;
+    const freqScaleFactor = Math.pow(10, -freqSF);
     
     // Update AC Voltage (V) - phase voltages
-    this.updateIfExists('PhVphA', Math.round(acVoltage * scaleFactor));
-    this.updateIfExists('PhVphB', Math.round(acVoltage * scaleFactor));
-    this.updateIfExists('PhVphC', Math.round(acVoltage * scaleFactor));
+    this.updateIfExists('PhVphA', Math.round(acVoltage * voltageScaleFactor));
+    this.updateIfExists('PhVphB', Math.round(acVoltage * voltageScaleFactor));
+    this.updateIfExists('PhVphC', Math.round(acVoltage * voltageScaleFactor));
     
     // Update Frequency (Hz)
-    this.updateIfExists('Hz', Math.round(frequency * scaleFactor));
+    this.updateIfExists('Hz', Math.round(frequency * freqScaleFactor));
   }
 
   /**
@@ -157,6 +161,23 @@ class PVGenerator extends EventEmitter {
     // Calculate AC current: I = P / (V × PF)
     const acCurrent = acVoltage > 0 ? acPower / (acVoltage * powerFactor) : 0;
     
+    // Calculate per-phase currents (balanced three-phase)
+    // For a balanced three-phase system, current per phase = total current / 3
+    const currentPerPhase = acCurrent / 3;
+    
+    // Calculate line-to-line voltages (√3 × phase voltage)
+    // In three-phase systems: V_LL = V_phase × 1.732
+    const lineToLineVoltage = acVoltage * Math.sqrt(3);
+    
+    // Calculate apparent power: S = P / PF (VA)
+    const apparentPower = powerFactor > 0 ? acPower / powerFactor : 0;
+    
+    // Calculate reactive power: Q = √(S² - P²) (VAr)
+    // Using power triangle: Q = S × sin(arccos(PF))
+    const reactivePower = Math.sqrt(Math.max(0, 
+      apparentPower * apparentPower - acPower * acPower
+    ));
+    
     // DC Side values (with inverter efficiency)
     const dcPower = acPower / this.efficiency;
     
@@ -169,8 +190,8 @@ class PVGenerator extends EventEmitter {
     const currentScaleFactor = Math.pow(10, -currentSF);
     this.registerStore.setRegisterByNameInternal('A', Math.round(acCurrent * currentScaleFactor));
     
-    // Update AC Voltage (V) - SF=-2 (0.01 scale)
-    const voltageSF = -2;
+    // Update AC Voltage (V) - SF=-1 (0.1 scale) to match V_SF register
+    const voltageSF = -1;
     const voltageScaleFactor = Math.pow(10, -voltageSF);
     this.registerStore.setRegisterByNameInternal('PhVphA', Math.round(acVoltage * voltageScaleFactor));
     this.registerStore.setRegisterByNameInternal('PhVphB', Math.round(acVoltage * voltageScaleFactor));
@@ -190,6 +211,23 @@ class PVGenerator extends EventEmitter {
     const freqScaleFactor = Math.pow(10, -freqSF);
     this.registerStore.setRegisterByNameInternal('Hz', Math.round(frequency * freqScaleFactor));
     
+    // Update per-phase AC currents (AphA, AphB, AphC) - 40073-40075, SF=-2
+    // CRITICAL: EDMM-20 displays these as "Netzstrom Phase L1/L2/L3"
+    this.updateIfExists('AphA', Math.round(currentPerPhase * currentScaleFactor));
+    this.updateIfExists('AphB', Math.round(currentPerPhase * currentScaleFactor));
+    this.updateIfExists('AphC', Math.round(currentPerPhase * currentScaleFactor));
+    
+    // Update line-to-line voltages (PPVphAB, PPVphBC, PPVphCA) - 40077-40079, SF=-1
+    this.updateIfExists('PPVphAB', Math.round(lineToLineVoltage * voltageScaleFactor));
+    this.updateIfExists('PPVphBC', Math.round(lineToLineVoltage * voltageScaleFactor));
+    this.updateIfExists('PPVphCA', Math.round(lineToLineVoltage * voltageScaleFactor));
+    
+    // Update apparent power (VA) - 40088, SF=0 (same as W)
+    this.updateIfExists('VA', Math.round(apparentPower));
+    
+    // Update reactive power (VAr) - 40090, SF=0 (same as W)
+    this.updateIfExists('VAr', Math.round(reactivePower));
+    
     // Update Energy Counter (WH) - 40113-40114 (uint32)
     // This needs special handling for 32-bit value
     const totalWh = Math.round(this.totalEnergy);
@@ -203,21 +241,40 @@ class PVGenerator extends EventEmitter {
     const powerPerChannel = dcPower / this.mpptChannels;
     const currentPerChannel = dcCurrent / this.mpptChannels;
     
-    // MPPT Channel 1 - addresses would depend on model structure
-    // For now, update if registers exist
+    // DC scale factors
     const dcCurrentSF = -2;
     const dcCurrentScaleFactor = Math.pow(10, -dcCurrentSF);
     const dcVoltageSF = -2;
     const dcVoltageScaleFactor = Math.pow(10, -dcVoltageSF);
     
-    this.updateIfExists('DCA_1', Math.round(currentPerChannel * dcCurrentScaleFactor));
-    this.updateIfExists('DCV_1', Math.round(dcVoltage * dcVoltageScaleFactor));
-    this.updateIfExists('DCW_1', Math.round(powerPerChannel)); // No scaling for power
+    // Update overall DC values (Model 103) - 40097-40102
+    this.updateIfExists('DCA', Math.round(dcCurrent * dcCurrentScaleFactor));
+    this.updateIfExists('DCV', Math.round(dcVoltage * dcVoltageScaleFactor));
+    this.updateIfExists('DCW', Math.round(dcPower));
     
-    // MPPT Channel 2
-    this.updateIfExists('DCA_2', Math.round(currentPerChannel * dcCurrentScaleFactor));
-    this.updateIfExists('DCV_2', Math.round(dcVoltage * dcVoltageScaleFactor));
-    this.updateIfExists('DCW_2', Math.round(powerPerChannel)); // No scaling for power
+    // Update MPPT Module 1 (Model 160) - 40273-40275
+    // CRITICAL: EDMM-20 displays these as "DC Strom Eingang [A]", "DC Spannung Eingang [A]"
+    this.updateIfExists('module/1/DCA', Math.round(currentPerChannel * dcCurrentScaleFactor));
+    this.updateIfExists('module/1/DCV', Math.round(dcVoltage * dcVoltageScaleFactor));
+    this.updateIfExists('module/1/DCW', Math.round(powerPerChannel));
+    
+    // Update MPPT Module 2 (Model 160) - 40293-40295
+    // CRITICAL: EDMM-20 displays these as "DC Strom Eingang [B]", "DC Spannung Eingang [B]"
+    this.updateIfExists('module/2/DCA', Math.round(currentPerChannel * dcCurrentScaleFactor));
+    this.updateIfExists('module/2/DCV', Math.round(dcVoltage * dcVoltageScaleFactor));
+    this.updateIfExists('module/2/DCW', Math.round(powerPerChannel));
+    
+    // Update MPPT Module 3 (Model 160) - 40313-40315
+    // CRITICAL: EDMM-20 displays these as "DC Strom Eingang [C]", "DC Spannung Eingang [C]"
+    this.updateIfExists('module/3/DCA', Math.round(currentPerChannel * dcCurrentScaleFactor));
+    this.updateIfExists('module/3/DCV', Math.round(dcVoltage * dcVoltageScaleFactor));
+    this.updateIfExists('module/3/DCW', Math.round(powerPerChannel));
+    
+    // Update MPPT Module 4 (Model 160) - 40333-40335
+    // CRITICAL: EDMM-20 displays these as "DC Strom Eingang [D]", "DC Spannung Eingang [D]"
+    this.updateIfExists('module/4/DCA', Math.round(currentPerChannel * dcCurrentScaleFactor));
+    this.updateIfExists('module/4/DCV', Math.round(dcVoltage * dcVoltageScaleFactor));
+    this.updateIfExists('module/4/DCW', Math.round(powerPerChannel))
     
     // Update operating state based on power
     if (acPower > 100) {

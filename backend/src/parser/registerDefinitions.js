@@ -129,9 +129,25 @@ export function initializeRegisterDefaults(registers) {
     }
     
     // Scale Factors - CRITICAL for proper value interpretation!
-    // W_SF (40085) - AC Power scale factor
-    // For 10kW inverter, use SF=0 (no scaling, 1W = 1W)
+    // Power Scale Factors - CRITICAL: All power values use SF=0 for 10kW inverter
+    // W_SF (40085) - AC Active Power scale factor
     else if (reg.address === 40085 && reg.name === 'W_SF') {
+      reg.value = convertToInt16(0); // 0 means no scaling (1:1)
+    }
+    // VA_SF (40089) - AC Apparent Power scale factor
+    else if (reg.address === 40089 && reg.name === 'VA_SF') {
+      reg.value = convertToInt16(0); // 0 means no scaling (1:1)
+    }
+    // VAr_SF (40091) - AC Reactive Power scale factor
+    else if (reg.address === 40091 && reg.name === 'VAr_SF') {
+      reg.value = convertToInt16(0); // 0 means no scaling (1:1)
+    }
+    // DCW_SF (40102) - DC Power scale factor
+    else if (reg.address === 40102 && reg.name === 'DCW_SF') {
+      reg.value = convertToInt16(0); // 0 means no scaling (1:1)
+    }
+    // DCW_SF for MPPT Model 160 (40258)
+    else if (reg.address === 40258 && reg.name === 'DCW_SF') {
       reg.value = convertToInt16(0); // 0 means no scaling (1:1)
     }
     // A_SF (40073) - AC Current scale factor
