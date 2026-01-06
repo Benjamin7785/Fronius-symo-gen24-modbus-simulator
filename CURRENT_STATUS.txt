@@ -1,0 +1,69 @@
+======================================================================
+  Fronius Gen24 Modbus Simulator - READY FOR EDMM-20
+======================================================================
+
+✅ Simulator Status:
+   Backend Running:  YES
+   Modbus Running:   YES
+   
+🌐 Network Configuration:
+   IP Address:       192.168.178.155
+   Modbus Port:      502
+   Device ID:        1
+   SunSpec ID:       0x53756E53 ('SunS')
+
+📱 Access Points:
+   Web UI:           http://192.168.178.155:3000
+   API:              http://192.168.178.155:3001
+   Modbus TCP:       192.168.178.155:502
+
+🔧 EDMM-20 Settings:
+   Schnittstelle:    Ethernet Modbus TCP
+   Modbus-Profil:    SunSpec
+   IP-Adresse:       192.168.178.155  ← USE THIS!
+   Port:             502
+   Unit ID:          1
+
+📖 Documentation:
+   Setup Guide:      EDMM20_SETUP_192.168.178.md
+   Quick Start:      QUICKSTART.md
+   Testing:          TESTING.md
+
+======================================================================
+
+IMPORTANT NOTES:
+
+1. The simulator is NOW RUNNING on your 192.168.178.XXX network
+2. The Modbus server is ACTIVE and listening on port 502
+3. The correct IP (192.168.178.155) is now automatically detected
+4. You can access the Web UI from any device on your network
+
+NEXT STEPS FOR EDMM-20:
+
+1. Open EDMM-20 web interface
+2. Go to Configuration → Devices → Add Device
+3. Enter the settings shown above
+4. Click "Scan" or "Suchen"
+5. Wait 10-30 seconds
+6. Device should be discovered as "Fronius Symo GEN24"
+
+TROUBLESHOOTING:
+
+If EDMM-20 still can't find the device:
+
+1. Check Windows Firewall (may need to allow port 502)
+2. Verify EDMM-20 is on same network (192.168.178.XXX)
+3. Try scanning multiple times (sometimes first scan fails)
+4. Check EDMM-20 logs for specific error messages
+
+TEST CONNECTIVITY:
+
+From your PC:
+  Test-NetConnection -ComputerName 192.168.178.155 -Port 502
+
+From EDMM-20 or another device:
+  telnet 192.168.178.155 502
+
+======================================================================
+
+

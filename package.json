@@ -1,0 +1,33 @@
+{
+  "name": "fronius-modbus-simulator",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Complete Modbus TCP simulator for Fronius Symo Gen24 Plus inverter",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build": "cd frontend && npm run build",
+    "start:backend": "cd backend && npm start",
+    "start": "npm run start:backend"
+  },
+  "keywords": [
+    "modbus",
+    "simulator",
+    "fronius",
+    "sunspec",
+    "inverter"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+

@@ -1,0 +1,47 @@
+========================================
+  Fronius Gen24 Simulator - Device Info
+========================================
+
+EDMM-20 will discover this device as:
+
+  Manufacturer:     Fronius
+  Model:            Gen24 SIM
+  Serial Number:    12345678
+  Firmware:         1.28.5-1
+
+Network Configuration:
+
+  IP Address:       192.168.178.155
+  Modbus Port:      502
+  Unit ID:          1
+  Protocol:         SunSpec Modbus TCP
+
+SunSpec Compliance:
+
+  SunSpec ID:       0x53756E53 ("SunS")
+  Common Model:     ID=1, Length=65
+  Inverter Model:   ID=103, Length=50
+
+Status:
+
+  ✅ Simulator Running
+  ✅ Modbus Server Active
+  ✅ SunSpec Compliant
+  ✅ Ready for Discovery
+
+EDMM-20 Settings:
+
+  Schnittstelle:    Ethernet Modbus TCP
+  Modbus-Profil:    SunSpec
+  IP-Adresse:       192.168.178.155
+  Port:             502
+  Unit ID:          1
+
+Expected Discovery Result:
+
+  Device will appear as:
+  "Fronius Gen24 SIM"
+
+========================================
+
+
