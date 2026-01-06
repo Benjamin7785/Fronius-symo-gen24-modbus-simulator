@@ -1,5 +1,50 @@
 # Version History
 
+## Version 1.1.2 (January 6, 2026)
+
+**Complete Scale Factor Fixes**
+
+### Issues Fixed
+
+1. **Voltage Scaling Mismatch** (Version 1.1.1)
+   - Fixed V_SF usage from -2 to -1 in pvGenerator.js
+   - Phase voltages now display as 230V (was 2309V)
+   - Line voltages now display as 400V (was 4000V)
+
+2. **Power Scale Factor Corrections** (Version 1.1.2)
+   - Fixed VA_SF (40089) from -2 to 0
+   - Fixed VAr_SF (40091) from -2 to 0
+   - Fixed DCW_SF (40102) from -2 to 0
+   - Fixed DCW_SF (40258, MPPT) from -2 to 0
+   - All power values now display correctly (not 100x too small)
+
+3. **Complete Inverter Values** (Version 1.1)
+   - Added per-phase AC currents (AphA, AphB, AphC)
+   - Added line-to-line voltages (PPVphAB, PPVphBC, PPVphCA)
+   - Added apparent power (VA) and reactive power (VAr)
+   - Added DC values for all 4 MPPT modules
+   - All values now physically consistent
+
+### Physical Verification
+
+All values verified against physical relationships:
+- AC: P = V × I × PF (2410W = 230V × 10.6A × 0.991)
+- AC: S = V × I (2432VA = 230V × 10.6A)
+- AC: Q = √(S² - P²) (326VAr)
+- DC: P = V × I (2485W = 650V × 3.82A)
+- Efficiency: DC/AC = 2485W/2410W = 1.03 ≈ 1/0.97
+
+### Files Modified
+- backend/src/simulation/pvGenerator.js
+- backend/src/parser/registerDefinitions.js
+
+### Documentation Added
+- COMPLETE_VALUES_UPDATE.md
+- VOLTAGE_SCALING_FIX.md
+- SCALE_FACTOR_FIX_COMPLETE.md
+
+---
+
 ## Version 1.0 (January 6, 2026)
 
 **Initial Release - Full EDMM-20 Integration**
