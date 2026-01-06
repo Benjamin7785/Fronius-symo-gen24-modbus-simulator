@@ -1,5 +1,63 @@
 # Version History
 
+## Version 1.2 (January 6, 2026)
+
+**User Experience Improvements - Convenient Startup/Shutdown**
+
+### New Features
+
+1. **Start.bat** - One-click simulator startup
+   - Automatically starts both backend and frontend servers
+   - Displays all connection URLs (Web UI, API, Modbus)
+   - Shows configuration reminder (click START button)
+   - Colored console output for better visibility
+   - Keeps window open for monitoring
+
+2. **Stop.bat** - Clean shutdown
+   - Safely terminates all Node.js processes
+   - Prevents orphaned processes
+   - User-friendly confirmation messages
+
+3. **Enhanced Documentation**
+   - Updated README.md with prominent Quick Start section
+   - Updated QUICKSTART.md with complete startup procedure
+   - Added step-by-step guide for first-time users
+   - Batch files prominently featured in all docs
+
+### Benefits
+
+- **No command line knowledge required** - Just double-click Start.bat
+- **Network IP displayed** - Easy EDMM-20 configuration
+- **Clean process management** - Stop.bat ensures no orphaned processes
+- **Beginner-friendly** - Perfect for users unfamiliar with npm/Node.js
+- **Windows-optimized** - Native batch file experience
+
+### Files Added
+
+- Start.bat
+- Stop.bat
+
+### Files Modified
+
+- README.md (Quick Start section added)
+- QUICKSTART.md (Complete startup procedure)
+
+### Usage
+
+**Starting:**
+```batch
+Start.bat
+```
+
+**Stopping:**
+```batch
+Stop.bat
+```
+
+That's it! No need to remember `npm run dev` or other commands.
+
+---
+
 ## Version 1.1.2 (January 6, 2026)
 
 **Complete Scale Factor Fixes**
