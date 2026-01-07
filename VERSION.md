@@ -1,5 +1,218 @@
 # Version History
 
+## Version 1.3 (January 7, 2026)
+
+**Advanced Testing Mode - Manual Register Override System**
+
+### Major Features
+
+#### 1. Manual Override System
+- **Force write to any register**, including normally read-only registers
+- Registers are **frozen from auto-calculation** when manually overridden
+- Enables advanced testing scenarios with EDMM-20 and other Modbus clients
+- Per-register freeze/unfreeze control
+
+#### 2. Web UI Enhancements
+- **Right-click context menu** on any register: "Force Write Value... (Advanced)"
+- **Visual indication** of overridden registers:
+  - Yellow/amber background color
+  - Lock icon (🔒) next to register name
+  - Reset button (↻) in Actions column
+- **Global override management**:
+  - Warning banner shows count of overridden registers
+  - "Reset All Overrides" button to resume all auto-calculations
+  - Real-time WebSocket updates
+
+#### 3. Advanced Testing Capabilities
+Test edge cases and device behavior:
+- Out-of-range values (over-voltage, zero frequency)
+- Frozen operating states while changing power
+- Physically impossible conditions (P > S, DC/AC power mismatch)
+- Device validation and error handling
+- Persistent control commands (EDMM-20 writes now stick)
+
+### Backend Implementation
+
+**RegisterStore (backend/src/modbus/registerStore.js)**
+- New property: `manualOverrides` Set to track frozen registers
+- `setManualOverride(address, values)` - Force write and freeze
+- `clearOverride(address)` - Unfreeze specific register
+- `clearAllOverrides()` - Unfreeze all registers
+- `isOverridden(address)` - Check if frozen
+- `getOverriddenRegisters()` - Get list of frozen registers
+
+**PVGenerator (backend/src/simulation/pvGenerator.js)**
+- `updateIfExists()` now respects overrides
+- Skips auto-calculation for frozen registers
+- Maintains physical consistency for non-frozen registers
+
+**Modbus Server (backend/src/modbus/modbusServer.js)**
+- **Breaking Change**: ALL Modbus writes now create overrides
+- Function codes 0x06 and 0x10 call `setManualOverride()` instead of `write()`
+- Allows EDMM-20 control commands to persist (freeze registers)
+- Enables testing how devices respond when values don't auto-update
+
+**API Routes (backend/src/api/routes.js)**
+- `PUT /api/registers/:address/override` - Force write
+- `DELETE /api/registers/:address/override` - Clear specific override
+- `DELETE /api/registers/overrides` - Clear all overrides
+- `GET /api/registers/overrides` - List overridden registers
+
+**WebSocket (backend/src/api/websocket.js)**
+- New event: `overridesChanged` with array of frozen addresses
+- Real-time updates to UI when overrides change
+
+**Simulator (backend/src/simulation/simulator.js)**
+- Added override management methods
+- Forwards `overridesChanged` events from RegisterStore
+
+### Frontend Implementation
+
+**RegisterTable (frontend/src/components/RegisterTable.jsx)**
+- Context menu on right-click: "Force Write Value... (Advanced)"
+- Listens to `overridesChanged` WebSocket events
+- Yellow/amber highlighting for frozen registers
+- Lock icon visual indicator
+- Reset button per overridden register
+- Warning dialog when force-writing
+
+**SimulatorControl (frontend/src/components/SimulatorControl.jsx)**
+- Tracks override count via WebSocket
+- Shows warning banner when overrides exist
+- "Reset All Overrides" button with confirmation
+- Displays count: "3 registers manually overridden"
+
+**API Service (frontend/src/services/api.js)**
+- `setRegisterOverride(address, values)`
+- `clearRegisterOverride(address)`
+- `clearAllOverrides()`
+- `getOverriddenRegisters()`
+
+**WebSocket Service (frontend/src/services/websocket.js)**
+- `onOverridesChanged(callback)` - Subscribe to override changes
+- Listeners for `overridesChanged` event
+
+### Documentation
+
+**ADVANCED_TESTING.md** (new file)
+- Complete guide for using manual overrides
+- 5 detailed testing scenarios:
+  1. Test EDMM-20 response to over-voltage
+  2. Test state machine with frozen operating state
+  3. Test power triangle inconsistency
+  4. Test DC/AC power mismatch
+  5. Test zero frequency
+- API endpoint reference with curl examples
+- Scale factor handling guide
+- Troubleshooting section
+- Best practices and safety warnings
+- Known limitations
+
+### Use Cases Enabled
+
+1. **EDMM-20 Validation Testing**
+   - Set out-of-range voltage and observe error handling
+   - Test grid frequency failure scenarios
+   - Verify power limit control persistence
+
+2. **State Machine Testing**
+   - Freeze operating state while changing power
+   - Test invalid state/power combinations
+   - Verify device transitions
+
+3. **Physical Consistency Testing**
+   - Create P > S (impossible power factor)
+   - Set DC power < AC power (efficiency > 100%)
+   - Test device recalculation and validation
+
+4. **Control Command Persistence**
+   - EDMM-20 power limit writes now freeze the register
+   - Test device behavior when commands don't auto-revert
+   - Verify control loop stability
+
+### Breaking Changes
+
+**Modbus Write Behavior**
+- **Old behavior (v1.0-v1.2)**: Modbus writes could be overwritten by auto-calculation
+- **New behavior (v1.3)**: Modbus writes freeze registers from auto-calculation
+- **Impact**: EDMM-20 control commands now persist until explicitly cleared
+- **Rationale**: Enables testing scenarios where external control commands stick
+- **Mitigation**: Use Web UI or API to clear overrides and resume auto-calculation
+
+### Safety and Warnings
+
+- **No validation applied** - Any value can be set, even out-of-range
+- **Physical inconsistency possible** - Can create impossible electrical states
+- **EDMM-20 may disconnect** - Extreme values may trigger device errors
+- **Visual warnings** - UI clearly indicates advanced testing mode is active
+- **Easy reset** - Per-register and global reset buttons
+
+### API Examples
+
+**Force Write via API:**
+```bash
+curl -X PUT http://localhost:3001/api/registers/40080/override \
+  -H "Content-Type: application/json" \
+  -d '{"values": [2800]}'
+```
+
+**Clear All Overrides:**
+```bash
+curl -X DELETE http://localhost:3001/api/registers/overrides
+```
+
+### Files Modified
+
+Backend:
+- backend/src/modbus/registerStore.js
+- backend/src/simulation/pvGenerator.js
+- backend/src/api/routes.js
+- backend/src/modbus/modbusServer.js
+- backend/src/api/websocket.js
+- backend/src/simulation/simulator.js
+
+Frontend:
+- frontend/src/components/RegisterTable.jsx
+- frontend/src/components/SimulatorControl.jsx
+- frontend/src/services/api.js
+- frontend/src/services/websocket.js
+
+### Files Created
+
+- ADVANCED_TESTING.md - Complete testing guide
+
+### Compatibility
+
+- **Backward compatible** with existing features
+- **Opt-in system** - Requires explicit right-click or Modbus write
+- **Can revert** - Clear all overrides to return to v1.2 behavior
+- **Tested with** - SMA EDMM-20, modpoll, standard Modbus clients
+
+### Testing
+
+- Designed for advanced testing with SMA EDMM-20
+- Supports extreme edge cases and error conditions
+- API endpoints enable automated test scripts
+- Comprehensive documentation of scenarios
+
+### Known Limitations
+
+- No validation of values (by design for testing)
+- No auto-consistency enforcement
+- Scale factors must be calculated manually
+- 32-bit register overrides affect single registers only
+- Overrides persist until explicitly cleared or simulator restart
+
+### Version Statistics
+
+- **Lines changed**: 789 insertions, 63 deletions
+- **Files modified**: 10 backend/frontend files
+- **Files created**: 1 documentation file
+- **New API endpoints**: 4
+- **New UI features**: 5 (context menu, highlighting, icons, buttons, banner)
+
+---
+
 ## Version 1.2 (January 6, 2026)
 
 **User Experience Improvements - Convenient Startup/Shutdown**
