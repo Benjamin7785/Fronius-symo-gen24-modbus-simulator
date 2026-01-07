@@ -13,6 +13,7 @@ class RegisterStore extends EventEmitter {
     this.registers = new Array(400).fill(0); // Array for holding register values (40001-40400)
     this.registerMetadata = new Map(); // Map of address -> register metadata
     this.scaleFactors = new Map(); // Map of register name -> scale factor register address
+    this.manualOverrides = new Set(); // Set of addresses with manual overrides (frozen from auto-calculation)
   }
 
   /**
@@ -227,6 +228,7 @@ class RegisterStore extends EventEmitter {
 
   /**
    * Internal write method that bypasses read-only check (for simulation)
+   * Respects manual overrides - will not write to overridden registers
    */
   writeInternal(address, values) {
     const changedRegisters = [];
@@ -234,6 +236,11 @@ class RegisterStore extends EventEmitter {
     for (let i = 0; i < values.length; i++) {
       const addr = address + i;
       const index = addr - 40001;
+      
+      // Skip if register is manually overridden (frozen)
+      if (this.manualOverrides.has(addr)) {
+        continue;
+      }
       
       if (index >= 0 && index < this.registers.length) {
         const oldValue = this.registers[index];
@@ -293,6 +300,105 @@ class RegisterStore extends EventEmitter {
    */
   getRawRegisters() {
     return this.registers;
+  }
+
+  /**
+   * Set manual override for a register (force write, freezes auto-calculation)
+   * This allows writing to read-only registers for advanced testing
+   */
+  setManualOverride(address, values) {
+    if (!Array.isArray(values)) {
+      values = [values];
+    }
+    
+    const changedRegisters = [];
+    
+    for (let i = 0; i < values.length; i++) {
+      const addr = address + i;
+      const index = addr - 40001;
+      
+      if (index >= 0 && index < this.registers.length) {
+        const oldValue = this.registers[index];
+        this.registers[index] = values[i] & 0xFFFF;
+        
+        // Mark as overridden (frozen)
+        this.manualOverrides.add(addr);
+        
+        if (oldValue !== this.registers[index]) {
+          changedRegisters.push({
+            address: addr,
+            value: this.registers[index],
+            scaledValue: this.getScaledValue(addr),
+            overridden: true
+          });
+        }
+      }
+    }
+    
+    // Emit change and override events
+    if (changedRegisters.length > 0) {
+      this.emit('change', changedRegisters);
+      this.emit('overridesChanged', Array.from(this.manualOverrides));
+    }
+    
+    console.log(`[Override] Register ${address} manually overridden (frozen from auto-calculation)`);
+    return true;
+  }
+
+  /**
+   * Clear manual override for a register (resume auto-calculation)
+   */
+  clearOverride(address) {
+    const wasOverridden = this.manualOverrides.has(address);
+    
+    if (wasOverridden) {
+      this.manualOverrides.delete(address);
+      this.emit('overridesChanged', Array.from(this.manualOverrides));
+      console.log(`[Override] Register ${address} override cleared (auto-calculation resumed)`);
+    }
+    
+    return wasOverridden;
+  }
+
+  /**
+   * Clear all manual overrides (resume all auto-calculations)
+   */
+  clearAllOverrides() {
+    const count = this.manualOverrides.size;
+    
+    if (count > 0) {
+      this.manualOverrides.clear();
+      this.emit('overridesChanged', []);
+      console.log(`[Override] All ${count} overrides cleared (auto-calculation resumed)`);
+    }
+    
+    return count;
+  }
+
+  /**
+   * Check if a register is manually overridden (frozen)
+   */
+  isOverridden(address) {
+    return this.manualOverrides.has(address);
+  }
+
+  /**
+   * Get list of all overridden register addresses
+   */
+  getOverriddenRegisters() {
+    return Array.from(this.manualOverrides);
+  }
+
+  /**
+   * Get address by register name
+   */
+  getAddressByName(name) {
+    for (const [address, metadata] of this.registerMetadata) {
+      if (metadata.name === name) {
+        return address;
+      }
+    }
+    return null;
   }
 }
 

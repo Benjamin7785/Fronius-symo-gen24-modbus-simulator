@@ -266,8 +266,10 @@ class ModbusTCPServer extends EventEmitter {
     const registerAddress = address + 40001;
 
     try {
-      // Write to register store
-      this.registerStore.write(registerAddress, [value]);
+      // Write to register store using manual override (v1.3: freezes auto-calculation)
+      // This allows EDMM-20 to write to any register for advanced testing
+      this.registerStore.setManualOverride(registerAddress, [value]);
+      console.log(`[Modbus] Write via Modbus: Register ${registerAddress} set to ${value} (frozen from auto-calculation)`);
     } catch (error) {
       const err = new Error(error.message);
       err.exceptionCode = error.message.includes('read-only') 
@@ -322,8 +324,10 @@ class ModbusTCPServer extends EventEmitter {
     const registerAddress = startAddress + 40001;
 
     try {
-      // Write to register store
-      this.registerStore.write(registerAddress, values);
+      // Write to register store using manual override (v1.3: freezes auto-calculation)
+      // This allows EDMM-20 to write to any register for advanced testing
+      this.registerStore.setManualOverride(registerAddress, values);
+      console.log(`[Modbus] Write via Modbus: Registers ${registerAddress}-${registerAddress + quantity - 1} overridden (frozen from auto-calculation)`);
     } catch (error) {
       const err = new Error(error.message);
       err.exceptionCode = error.message.includes('read-only')

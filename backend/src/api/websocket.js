@@ -32,10 +32,15 @@ function setupWebSocket(httpServer, simulator) {
       socket.emit('power', simulator.getPowerStatus());
     };
 
+    const handleOverridesChange = (overrides) => {
+      socket.emit('overridesChanged', overrides);
+    };
+
     // Attach event listeners
     simulator.on('registerChanged', handleRegisterChange);
     simulator.on('statusChanged', handleStatusChange);
     simulator.on('powerChanged', handlePowerChange);
+    simulator.on('overridesChanged', handleOverridesChange);
 
     // Handle client requests
     socket.on('getStatus', () => {
@@ -58,6 +63,7 @@ function setupWebSocket(httpServer, simulator) {
       simulator.off('registerChanged', handleRegisterChange);
       simulator.off('statusChanged', handleStatusChange);
       simulator.off('powerChanged', handlePowerChange);
+      simulator.off('overridesChanged', handleOverridesChange);
     });
   });
 

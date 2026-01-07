@@ -144,6 +144,73 @@ function createRoutes(simulator) {
     }
   });
 
+  // Override endpoints (Advanced Testing Mode)
+  // Force write to any register, including read-only (freezes auto-calculation)
+  router.put('/registers/:address/override', (req, res) => {
+    try {
+      const address = parseInt(req.params.address);
+      const { values } = req.body;
+      
+      if (!values || !Array.isArray(values)) {
+        return res.status(400).json({ error: 'Values array is required' });
+      }
+      
+      simulator.setRegisterOverride(address, values);
+      res.json({ 
+        success: true, 
+        address, 
+        values,
+        message: 'Register manually overridden (frozen from auto-calculation)' 
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Clear override for a specific register (resume auto-calculation)
+  router.delete('/registers/:address/override', (req, res) => {
+    try {
+      const address = parseInt(req.params.address);
+      
+      const wasOverridden = simulator.clearRegisterOverride(address);
+      if (wasOverridden) {
+        res.json({ 
+          success: true, 
+          address,
+          message: 'Override cleared, auto-calculation resumed' 
+        });
+      } else {
+        res.status(404).json({ error: 'Register was not overridden' });
+      }
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Clear all overrides (resume all auto-calculations)
+  router.delete('/registers/overrides', (req, res) => {
+    try {
+      const count = simulator.clearAllOverrides();
+      res.json({ 
+        success: true, 
+        count,
+        message: `${count} override(s) cleared, all auto-calculations resumed` 
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
+  // Get list of all overridden registers
+  router.get('/registers/overrides', (req, res) => {
+    try {
+      const overrides = simulator.getOverriddenRegisters();
+      res.json({ overrides });
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   return router;
 }
 

@@ -36,6 +36,16 @@ export const setRegister = (address, value) =>
 export const getModels = () => api.get('/models');
 export const getModelRegisters = (modelId) => api.get(`/models/${modelId}`);
 
+// Override management (Advanced Testing Mode - v1.3)
+export const setRegisterOverride = (address, values) => 
+  api.put(`/registers/${address}/override`, { values });
+export const clearRegisterOverride = (address) => 
+  api.delete(`/registers/${address}/override`);
+export const clearAllOverrides = () => 
+  api.delete(`/registers/overrides`);
+export const getOverriddenRegisters = () => 
+  api.get(`/registers/overrides`);
+
 export default api;
 
 

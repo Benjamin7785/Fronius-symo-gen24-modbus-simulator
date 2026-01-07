@@ -296,13 +296,17 @@ class PVGenerator extends EventEmitter {
   }
 
   /**
-   * Update register if it exists
+   * Update register if it exists (respects manual overrides)
    */
   updateIfExists(name, value) {
     try {
       const reg = this.registerStore.getRegisterByName(name);
       if (reg) {
-        this.registerStore.setRegisterByNameInternal(name, value);
+        // Check if register is manually overridden (frozen from auto-calculation)
+        if (!this.registerStore.isOverridden(reg.address)) {
+          this.registerStore.setRegisterByNameInternal(name, value);
+        }
+        // If overridden, skip update (manual value persists)
       }
     } catch (e) {
       // Register doesn't exist, ignore

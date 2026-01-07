@@ -77,6 +77,10 @@ class Simulator extends EventEmitter {
         this.emit('registerChanged', data);
       });
 
+      this.registerStore.on('overridesChanged', (overrides) => {
+        this.emit('overridesChanged', overrides);
+      });
+
       this.pvGenerator.on('powerUpdated', (powerStatus) => {
         this.emit('powerChanged', powerStatus);
       });
@@ -270,6 +274,62 @@ class Simulator extends EventEmitter {
     }
     
     this.registerStore.write(address, [value]);
+  }
+
+  /**
+   * Force write to any register including read-only (creates manual override)
+   * This freezes the register from auto-calculation for advanced testing
+   */
+  setRegisterOverride(address, values) {
+    if (!this.registerStore) {
+      throw new Error('Simulator not initialized');
+    }
+    
+    this.registerStore.setManualOverride(address, values);
+  }
+
+  /**
+   * Clear manual override for a register (resume auto-calculation)
+   */
+  clearRegisterOverride(address) {
+    if (!this.registerStore) {
+      throw new Error('Simulator not initialized');
+    }
+    
+    return this.registerStore.clearOverride(address);
+  }
+
+  /**
+   * Clear all manual overrides (resume all auto-calculations)
+   */
+  clearAllOverrides() {
+    if (!this.registerStore) {
+      throw new Error('Simulator not initialized');
+    }
+    
+    return this.registerStore.clearAllOverrides();
+  }
+
+  /**
+   * Get list of all overridden register addresses
+   */
+  getOverriddenRegisters() {
+    if (!this.registerStore) {
+      return [];
+    }
+    
+    const addresses = this.registerStore.getOverriddenRegisters();
+    
+    // Return with metadata for each overridden register
+    return addresses.map(address => {
+      const metadata = this.registerStore.getMetadata(address);
+      return {
+        address,
+        name: metadata ? metadata.name : 'Unknown',
+        value: this.registerStore.read(address, 1)[0],
+        scaledValue: this.registerStore.getScaledValue(address)
+      };
+    });
   }
 
   /**

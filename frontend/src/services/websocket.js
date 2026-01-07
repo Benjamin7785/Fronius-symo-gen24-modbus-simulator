@@ -8,7 +8,8 @@ let socket = null;
 const listeners = {
   status: [],
   registerChanged: [],
-  power: []
+  power: [],
+  overridesChanged: []
 };
 
 export const connectWebSocket = () => {
@@ -41,6 +42,11 @@ export const connectWebSocket = () => {
     listeners.power.forEach(callback => callback(data));
   });
 
+  socket.on('overridesChanged', (data) => {
+    console.log('🔒 Overrides changed:', data);
+    listeners.overridesChanged.forEach(callback => callback(data));
+  });
+
   return socket;
 };
 
@@ -69,6 +75,13 @@ export const onPowerChanged = (callback) => {
   listeners.power.push(callback);
   return () => {
     listeners.power = listeners.power.filter(cb => cb !== callback);
+  };
+};
+
+export const onOverridesChanged = (callback) => {
+  listeners.overridesChanged.push(callback);
+  return () => {
+    listeners.overridesChanged = listeners.overridesChanged.filter(cb => cb !== callback);
   };
 };
 

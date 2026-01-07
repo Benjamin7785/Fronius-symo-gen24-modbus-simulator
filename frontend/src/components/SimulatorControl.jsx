@@ -11,9 +11,9 @@ import {
   TextField,
   Alert
 } from '@mui/material';
-import { PlayArrow, Stop, Refresh } from '@mui/icons-material';
-import { startSimulator, stopSimulator, resetSimulator, setPower, getSimulatorStatus } from '../services/api';
-import { onStatus, onPowerChanged, requestStatus, requestPower } from '../services/websocket';
+import { PlayArrow, Stop, Refresh, RestartAlt, Lock } from '@mui/icons-material';
+import { startSimulator, stopSimulator, resetSimulator, setPower, getSimulatorStatus, clearAllOverrides, getOverriddenRegisters } from '../services/api';
+import { onStatus, onPowerChanged, onOverridesChanged, requestStatus, requestPower } from '../services/websocket';
 
 const SimulatorControl = () => {
   const [status, setStatus] = useState(null);
@@ -21,18 +21,22 @@ const SimulatorControl = () => {
   const [targetPower, setTargetPower] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [overrideCount, setOverrideCount] = useState(0);
 
   useEffect(() => {
     // Initial status fetch
     loadStatus();
+    loadOverrides();
 
     // Subscribe to WebSocket updates
     const unsubscribeStatus = onStatus(handleStatusUpdate);
     const unsubscribePower = onPowerChanged(handlePowerUpdate);
+    const unsubscribeOverrides = onOverridesChanged(handleOverridesChanged);
 
     return () => {
       unsubscribeStatus();
       unsubscribePower();
+      unsubscribeOverrides();
     };
   }, []);
 
@@ -70,6 +74,36 @@ const SimulatorControl = () => {
         power: data
       };
     });
+  };
+
+  const loadOverrides = async () => {
+    try {
+      const response = await getOverriddenRegisters();
+      setOverrideCount(response.data.overrides?.length || 0);
+    } catch (err) {
+      console.error('Failed to load overrides:', err);
+    }
+  };
+
+  const handleOverridesChanged = (addresses) => {
+    setOverrideCount(addresses.length);
+  };
+
+  const handleResetAllOverrides = async () => {
+    if (!window.confirm('Clear all manual overrides and resume auto-calculation for all registers?')) {
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    try {
+      await clearAllOverrides();
+      setOverrideCount(0);
+    } catch (err) {
+      setError(err.response?.data?.error || err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleStart = async () => {
@@ -302,6 +336,32 @@ const SimulatorControl = () => {
                   sx={{ width: 120 }}
                 />
               </Box>
+            </Grid>
+          )}
+
+          {/* Override Management (v1.3 - Advanced Testing) */}
+          {overrideCount > 0 && (
+            <Grid item xs={12}>
+              <Alert severity="warning" sx={{ display: 'flex', alignItems: 'center' }}>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle2" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Lock /> Advanced Testing Mode Active
+                  </Typography>
+                  <Typography variant="body2">
+                    {overrideCount} register{overrideCount !== 1 ? 's' : ''} manually overridden (frozen from auto-calculation)
+                  </Typography>
+                </Box>
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  startIcon={<RestartAlt />}
+                  onClick={handleResetAllOverrides}
+                  disabled={loading}
+                  size="small"
+                >
+                  Reset All Overrides
+                </Button>
+              </Alert>
             </Grid>
           )}
         </Grid>
